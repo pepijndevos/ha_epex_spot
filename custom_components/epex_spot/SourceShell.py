@@ -7,6 +7,7 @@ from typing import Any
 import aiohttp
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 from homeassistant.util import dt
 
 from custom_components.epex_spot.const import (
@@ -28,6 +29,7 @@ from custom_components.epex_spot.const import (
     CONF_SURCHARGE_ABS,
     CONF_SURCHARGE_PERC,
     CONF_TAX,
+    CONF_ADDITIONAL_SURCHARGE_ENTITY_ID,
     CONF_TOKEN,
     DEFAULT_DURATION,
     DEFAULT_SURCHARGE_ABS,
@@ -51,8 +53,14 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class SourceShell:
-    def __init__(self, config_entry: ConfigEntry, session: aiohttp.ClientSession):
+    def __init__(
+        self,
+        config_entry: ConfigEntry,
+        session: aiohttp.ClientSession,
+        hass: HomeAssistant,
+    ):
         self._config_entry = config_entry
+        self._hass = hass
         self._marketdata_now = None
         self._sorted_marketdata_today = []
         self._cheapest_sorted_marketdata_today = None
@@ -200,6 +208,27 @@ class SourceShell:
             total_price = total_price + abs(total_price) * surcharge_pct / 100
             total_price += surcharge_abs
             total_price *= 1 + (tax / 100.0)
+
+        additional_surcharge = 0.0
+        surcharge_entity_id = self._config_entry.options.get(
+            CONF_ADDITIONAL_SURCHARGE_ENTITY_ID
+        )
+        if surcharge_entity_id and self._hass is not None:
+            surcharge_state = self._hass.states.get(surcharge_entity_id)
+            if surcharge_state is not None and surcharge_state.state not in (
+                "unknown",
+                "unavailable",
+            ):
+                try:
+                    additional_surcharge = float(surcharge_state.state)
+                except (TypeError, ValueError):
+                    _LOGGER.warning(
+                        "Additional surcharge sensor %s returned non-numeric state %s",
+                        surcharge_entity_id,
+                        surcharge_state.state,
+                    )
+
+        total_price += additional_surcharge
 
         return round(total_price, 6)
 

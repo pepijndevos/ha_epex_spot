@@ -41,6 +41,8 @@
           "duration": "Slot duration",
           "percentage_surcharge": "Percentage Surcharge (%)",
           "absolute_surcharge": "Absolute Surcharge (€/£ per kWh)",
+          "additional_surcharge_entity_id": "Additional surcharge sensor",
+          "additional_surcharge_entity_id": "Additional surcharge sensor",
           "tax": "Tax (%)"
         },
         "data_description": {

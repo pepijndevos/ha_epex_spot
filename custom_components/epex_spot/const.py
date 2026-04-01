@@ -32,6 +32,7 @@ CONF_SOURCE_HOFER_GRUENSTROM = "Hofer Gruenstrom"
 CONF_SURCHARGE_PERC = "percentage_surcharge"
 CONF_SURCHARGE_ABS = "absolute_surcharge"
 CONF_TAX = "tax"
+CONF_ADDITIONAL_SURCHARGE_ENTITY_ID = "additional_surcharge_entity_id"
 
 # service call
 CONF_EARLIEST_START_TIME = "earliest_start"

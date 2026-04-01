@@ -8,6 +8,7 @@ from typing import List, Tuple
 
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlowWithReload
 from homeassistant.core import callback
+from homeassistant.helpers.selector import selector
 
 from .const import (
     CONF_MARKET_AREA,
@@ -23,6 +24,7 @@ from .const import (
     CONF_SURCHARGE_ABS,
     CONF_SURCHARGE_PERC,
     CONF_TAX,
+    CONF_ADDITIONAL_SURCHARGE_ENTITY_ID,
     CONF_TOKEN,
     CONF_DURATION,
     CONFIG_VERSION,
@@ -159,43 +161,112 @@ class EpexSpotOptionsFlow(OptionsFlowWithReload):
     def __init__(self) -> None:
         """Initialize options flow."""
 
+    def _validate_additional_surcharge_entity(self, entity_id: str) -> str:
+        if entity_id is None or entity_id == "":
+            return None
+
+        state = self.hass.states.get(entity_id)
+        if state is None:
+            raise vol.Invalid("Additional surcharge sensor entity does not exist.")
+        if entity_id.split(".", 1)[0] != "sensor":
+            raise vol.Invalid("Additional surcharge entity must be a sensor.")
+        if state.attributes.get("device_class") != "monetary":
+            raise vol.Invalid("Additional surcharge entity must be a price sensor.")
+
+        return entity_id
+
     async def async_step_init(self, user_input=None):
         """Manage the options."""
-        if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
-
         _, durations, _ = getParametersForSource(
             self.config_entry.data.get(CONF_SOURCE)
         )
 
+        if user_input is not None:
+            try:
+                surcharge_entity_id = self._validate_additional_surcharge_entity(
+                    user_input.get(CONF_ADDITIONAL_SURCHARGE_ENTITY_ID)
+                )
+            except vol.Invalid as err:
+                return self.async_show_form(
+                    step_id="init",
+                    data_schema=self._init_options_schema(durations),
+                    errors={CONF_ADDITIONAL_SURCHARGE_ENTITY_ID: str(err)},
+                )
+
+            options = {
+                CONF_SURCHARGE_PERC: user_input.get(
+                    CONF_SURCHARGE_PERC,
+                    self.config_entry.options.get(
+                        CONF_SURCHARGE_PERC, DEFAULT_SURCHARGE_PERC
+                    ),
+                ),
+                CONF_SURCHARGE_ABS: user_input.get(
+                    CONF_SURCHARGE_ABS,
+                    self.config_entry.options.get(
+                        CONF_SURCHARGE_ABS, DEFAULT_SURCHARGE_ABS
+                    ),
+                ),
+                CONF_TAX: user_input.get(
+                    CONF_TAX,
+                    self.config_entry.options.get(CONF_TAX, DEFAULT_TAX),
+                ),
+                CONF_DURATION: user_input.get(
+                    CONF_DURATION,
+                    self.config_entry.options.get(CONF_DURATION, DEFAULT_DURATION),
+                ),
+            }
+
+            if surcharge_entity_id is not None:
+                options[CONF_ADDITIONAL_SURCHARGE_ENTITY_ID] = surcharge_entity_id
+
+            return self.async_create_entry(title="", data=options)
+
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema(
-                {
-                    vol.Optional(
-                        CONF_SURCHARGE_PERC,
-                        default=self.config_entry.options.get(
-                            CONF_SURCHARGE_PERC, DEFAULT_SURCHARGE_PERC
-                        ),
-                    ): vol.Coerce(float),
-                    vol.Optional(
-                        CONF_SURCHARGE_ABS,
-                        default=self.config_entry.options.get(
-                            CONF_SURCHARGE_ABS, DEFAULT_SURCHARGE_ABS
-                        ),
-                    ): vol.Coerce(float),
-                    vol.Optional(
-                        CONF_TAX,
-                        default=self.config_entry.options.get(CONF_TAX, DEFAULT_TAX),
-                    ): vol.Coerce(float),
-                    vol.Required(
-                        CONF_DURATION,
-                        default=self.config_entry.options.get(
-                            CONF_DURATION, DEFAULT_DURATION
-                        ),
-                    ): vol.In(durations),
-                }
-            ),
+            data_schema=self._init_options_schema(durations),
+        )
+
+    def _init_options_schema(self, durations=None):
+        return vol.Schema(
+            {
+                vol.Optional(
+                    CONF_SURCHARGE_PERC,
+                    default=self.config_entry.options.get(
+                        CONF_SURCHARGE_PERC, DEFAULT_SURCHARGE_PERC
+                    ),
+                ): vol.Coerce(float),
+                vol.Optional(
+                    CONF_SURCHARGE_ABS,
+                    default=self.config_entry.options.get(
+                        CONF_SURCHARGE_ABS, DEFAULT_SURCHARGE_ABS
+                    ),
+                ): vol.Coerce(float),
+                vol.Optional(
+                    CONF_ADDITIONAL_SURCHARGE_ENTITY_ID,
+                    description={
+                        "suggested_value": self.config_entry.options.get(
+                            CONF_ADDITIONAL_SURCHARGE_ENTITY_ID
+                        )
+                    },
+                ): selector(
+                    {
+                        "entity": {
+                            "domain": "sensor",
+                            "device_class": "monetary",
+                        }
+                    }
+                ),
+                vol.Optional(
+                    CONF_TAX,
+                    default=self.config_entry.options.get(CONF_TAX, DEFAULT_TAX),
+                ): vol.Coerce(float),
+                vol.Required(
+                    CONF_DURATION,
+                    default=self.config_entry.options.get(
+                        CONF_DURATION, DEFAULT_DURATION
+                    ),
+                ): vol.In(durations),
+            }
         )
 
 

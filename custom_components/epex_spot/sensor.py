@@ -3,6 +3,7 @@ from statistics import median
 
 import homeassistant.util.dt as dt_util
 from homeassistant.components.sensor import (
+    SensorDeviceClass,
     SensorEntity,
     SensorEntityDescription,
     SensorStateClass,
@@ -53,7 +54,7 @@ class EpexSpotMarketPriceSensorEntity(EpexSpotEntity, SensorEntity):
     entity_description = SensorEntityDescription(
         key="MarketPrice",
         name="Market Price",
-        state_class=SensorStateClass.MEASUREMENT,
+        device_class=SensorDeviceClass.MONETARY,
     )
 
     def __init__(self, coordinator: DataUpdateCoordinator):
@@ -88,8 +89,8 @@ class EpexSpotTotalPriceSensorEntity(EpexSpotEntity, SensorEntity):
     entity_description = SensorEntityDescription(
         key="Total Price",
         name="Total Price",
+        device_class=SensorDeviceClass.MONETARY,
         suggested_display_precision=6,
-        state_class=SensorStateClass.MEASUREMENT,
     )
 
     def __init__(self, coordinator: DataUpdateCoordinator):
@@ -296,8 +297,8 @@ class EpexSpotLowestPriceSensorEntity(EpexSpotEntity, SensorEntity):
     entity_description = SensorEntityDescription(
         key="Lowest Price",
         name="Lowest Price",
+        device_class=SensorDeviceClass.MONETARY,
         suggested_display_precision=6,
-        state_class=SensorStateClass.MEASUREMENT,
     )
 
     def __init__(self, coordinator: DataUpdateCoordinator):
@@ -326,8 +327,8 @@ class EpexSpotHighestPriceSensorEntity(EpexSpotEntity, SensorEntity):
     entity_description = SensorEntityDescription(
         key="Highest Price",
         name="Highest Price",
+        device_class=SensorDeviceClass.MONETARY,
         suggested_display_precision=6,
-        state_class=SensorStateClass.MEASUREMENT,
     )
 
     def __init__(self, coordinator: DataUpdateCoordinator):
@@ -356,8 +357,8 @@ class EpexSpotAveragePriceSensorEntity(EpexSpotEntity, SensorEntity):
     entity_description = SensorEntityDescription(
         key="Average Price",
         name="Average Price",
+        device_class=SensorDeviceClass.MONETARY,
         suggested_display_precision=6,
-        state_class=SensorStateClass.MEASUREMENT,
     )
 
     def __init__(self, coordinator: DataUpdateCoordinator):
@@ -383,8 +384,8 @@ class EpexSpotMedianPriceSensorEntity(EpexSpotEntity, SensorEntity):
     entity_description = SensorEntityDescription(
         key="Median Price",
         name="Median Price",
+        device_class=SensorDeviceClass.MONETARY,
         suggested_display_precision=6,
-        state_class=SensorStateClass.MEASUREMENT,
     )
 
     def __init__(self, coordinator: DataUpdateCoordinator):
