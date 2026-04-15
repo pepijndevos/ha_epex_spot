@@ -36,6 +36,7 @@ class NextEnergy:
         self._market_area = market_area
         self._duration = duration
         self._marketdata = []
+        self._os_visitor = None  # cached: server only sends this once (100-yr expiry)
 
     @property
     def name(self) -> str:
@@ -82,14 +83,16 @@ class NextEnergy:
             resp.raise_for_status()
             data = await resp.json()
             version_token = data["versionToken"]
-            # The nr2Users cookie carries the anonymous CSRF token for OutSystems.
-            # uid=0 and unm= indicate an anonymous user.
+            # osVisit is refreshed every 30 min; osVisitor is long-lived (100-yr
+            # expiry) so the server only sets it on the very first request.
+            if "osVisitor" in resp.cookies:
+                self._os_visitor = resp.cookies["osVisitor"].value
             nr2_value = urllib.parse.quote(
                 f"crf={CSRF_TOKEN};uid=0;unm=", safe=""
             )
             cookies = {
                 "osVisit": resp.cookies["osVisit"].value,
-                "osVisitor": resp.cookies["osVisitor"].value,
+                "osVisitor": self._os_visitor,
                 "nr2Users": nr2_value,
             }
             return version_token, cookies
